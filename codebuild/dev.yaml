@@ -4,8 +4,8 @@ Resources:
     Properties:
       SourceConfiguration:
         AuthenticationConfiguration:
-          AccessRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/apprunner.amazonaws.com/AWSServiceRoleForAWSAppRunner"
-          ConnectionArn: !Ref Connection
+          AccessRoleArn: Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/apprunner.amazonaws.com/AWSServiceRoleForAWSAppRunner"
+          ConnectionArn: Ref Connection
         AutoDeploymentsEnabled: true
         CodeRepository:
           RepositoryUrl: "YOUR_REPO_URL"
@@ -56,7 +56,7 @@ Resources:
                 Version: "1"
                 Provider: AppRunner
               Configuration:
-                ServiceArn: !Ref AppRunnerService
+                ServiceArn: Ref AppRunnerService
               InputArtifacts:
                 - Name: SourceOutput
               RunOrder: 1
