@@ -1,62 +1,20 @@
-Resources:
-  AppRunnerService:
-    Type: AWS::AppRunner::Service
-    Properties:
-      SourceConfiguration:
-        AuthenticationConfiguration:
-          AccessRoleArn: Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/apprunner.amazonaws.com/AWSServiceRoleForAWSAppRunner"
-          ConnectionArn: Ref Connection
-        AutoDeploymentsEnabled: true
-        CodeRepository:
-          RepositoryUrl: "YOUR_REPO_URL"
-          Branch: "main"
-      ServiceName: "YOUR_SERVICE_NAME"
+version: 0.2
 
-  Pipeline:
-    Type: AWS::CodePipeline::Pipeline
-    Properties:
-      Name: "AppRunnerPipeline"
-      RoleArn: "YOUR_PIPELINE_ROLE_ARN"
-      Stages:
-        - Name: Source
-          Actions:
-            - Name: SourceAction
-              ActionTypeId:
-                Category: Source
-                Owner: ThirdParty
-                Provider: GitHub
-                Version: "1"
-              Configuration:
-                Owner: "YOUR_GITHUB_USERNAME"
-                Repo: "YOUR_REPO_NAME"
-                Branch: "main"
-                OAuthToken: "YOUR_GITHUB_OAUTH_TOKEN"
-              OutputArtifacts:
-                - Name: SourceOutput
-              RunOrder: 1
-        - Name: Build
-          Actions:
-            - Name: BuildAction
-              ActionTypeId:
-                Category: Build
-                Owner: AWS
-                Version: "1"
-                Provider: CodeBuild
-              Configuration:
-                ProjectName: "YOUR_CODEBUILD_PROJECT_NAME"
-              InputArtifacts:
-                - Name: SourceOutput
-              RunOrder: 1
-        - Name: Deploy
-          Actions:
-            - Name: DeployAction
-              ActionTypeId:
-                Category: Deploy
-                Owner: AWS
-                Version: "1"
-                Provider: AppRunner
-              Configuration:
-                ServiceArn: Ref AppRunnerService
-              InputArtifacts:
-                - Name: SourceOutput
-              RunOrder: 1
+phases:
+  install:
+    runtime-versions:
+      docker: latest
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo Building the Docker image...
+      - docker build -t my-docker-image .
+      - echo Tagging the Docker image...
+      - docker tag my-docker-image:latest $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/my-docker-image:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image to Amazon ECR...
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/my-docker-image:latest
