@@ -1,0 +1,62 @@
+Resources:
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/aws-service-role/apprunner.amazonaws.com/AWSServiceRoleForAWSAppRunner"
+          ConnectionArn: !Ref Connection
+        AutoDeploymentsEnabled: true
+        CodeRepository:
+          RepositoryUrl: "YOUR_REPO_URL"
+          Branch: "main"
+      ServiceName: "YOUR_SERVICE_NAME"
+
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: "AppRunnerPipeline"
+      RoleArn: "YOUR_PIPELINE_ROLE_ARN"
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              Configuration:
+                Owner: "YOUR_GITHUB_USERNAME"
+                Repo: "YOUR_REPO_NAME"
+                Branch: "main"
+                OAuthToken: "YOUR_GITHUB_OAUTH_TOKEN"
+              OutputArtifacts:
+                - Name: SourceOutput
+              RunOrder: 1
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: "1"
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: "YOUR_CODEBUILD_PROJECT_NAME"
+              InputArtifacts:
+                - Name: SourceOutput
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: DeployAction
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: "1"
+                Provider: AppRunner
+              Configuration:
+                ServiceArn: !Ref AppRunnerService
+              InputArtifacts:
+                - Name: SourceOutput
+              RunOrder: 1
